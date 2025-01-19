@@ -1,13 +1,11 @@
-mod persist;
+mod data;
 
-use persist::database;
+use data::database;
 use sqlite::Connection;
 fn main() {
     env_logger::init();
-    let con = Connection::open("..");
-
-    match con {
-        Ok(_) => print!("connection succeed"),
-        Err(e) => print!("failed"),
+    match database::create_database("db_file") {
+        Ok(con) => database::create_tables(&con).unwrap(),
+        Err(e) => panic!("Error {}", e),
     }
 }

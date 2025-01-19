@@ -6,6 +6,7 @@ use sqlite::{Connection, OpenFlags};
 #[derive(Debug)]
 pub enum DatabaseError {
     ConnectionError(sqlite::Error),
+    InitializationError(sqlite::Error),
     Unknown(String),
 }
 
@@ -14,6 +15,9 @@ impl fmt::Display for DatabaseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DatabaseError::ConnectionError(err) => write!(f, "Failed to open database: {}", err),
+            DatabaseError::InitializationError(err) => {
+                write!(f, "Failed to initialize database: {}", err)
+            }
             DatabaseError::Unknown(msg) => write!(f, "An unknown database error occurred, {}", msg),
         }
     }
@@ -48,6 +52,30 @@ pub fn create_database(db_file: &str) -> Result<Connection, DatabaseError> {
     match Connection::open(db_file) {
         Ok(conn) => Ok(conn),
         Err(e) => Err(DatabaseError::ConnectionError(e)),
+    }
+}
+
+pub fn create_tables(con: &Connection) -> Result<(), DatabaseError> {
+    let result = con.execute(
+        "
+                CREATE TABLE entry (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    username TEXT,
+                    password TEXT,
+                    url TEXT,
+                    note TEXT
+                );
+                -- Indexes for frequently queried columns
+                CREATE INDEX idx_username ON entry (username);
+                CREATE INDEX idx_url ON entry (url);
+                CREATE INDEX idx_title ON entry (title);
+                ",
+    );
+
+    match result {
+        Ok(()) => Ok(()),
+        Err(e) => Err(DatabaseError::InitializationError(e)),
     }
 }
 

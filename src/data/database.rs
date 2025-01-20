@@ -58,6 +58,8 @@ pub fn create_database(db_file: &str) -> Result<Connection, DatabaseError> {
 pub fn create_tables(con: &Connection) -> Result<(), DatabaseError> {
     let result = con.execute(
         "
+                ---- ENTRIES
+
                 CREATE TABLE entry (
                     id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
@@ -67,9 +69,30 @@ pub fn create_tables(con: &Connection) -> Result<(), DatabaseError> {
                     note TEXT
                 );
                 -- Indexes for frequently queried columns
-                CREATE INDEX idx_username ON entry (username);
-                CREATE INDEX idx_url ON entry (url);
-                CREATE INDEX idx_title ON entry (title);
+                CREATE INDEX idx_entry_username ON entry (username);
+                CREATE INDEX idx_entry_url ON entry (url);
+                CREATE INDEX idx_entry_title ON entry (title);
+
+                ---- TAGS
+
+                CREATE TABLE tag (
+                    id TEXT PRIMARY KEY,
+                    tag TEXT NOT NULL
+                );
+                -- Indexes for frequently queried columns
+                CREATE INDEX idx_tag_tag ON tag (tag);
+
+                ---- ENTRIES TAGS link
+                CREATE TABLE entry_tag (
+                    entry_id TEXT NOT NULL,
+                    tag_id TEXT NOT NULL,
+                    PRIMARY KEY (entry_id, tag_id),
+                    FOREIGN KEY (entry_id) REFERENCES entry (id) ON DELETE CASCADE,
+                    FOREIGN KEY (tag_id) REFERENCES tag (id) ON DELETE CASCADE
+                );
+                -- Indexes for optimizing lookups
+                CREATE INDEX idx_entry_tag_entry_id ON entry_tag (entry_id);
+                CREATE INDEX idx_entry_tag_tag_id ON entry_tag (tag_id);
                 ",
     );
 

@@ -1,13 +1,19 @@
 mod data;
 
-use data::database::{self, database_exists};
-use sqlite::Connection;
+use data::{binary_file_entry_store::BinaryFileEntryStore, data_store::DataStore, model::Entry};
 fn main() {
-    env_logger::init();
-    if !database_exists("db_file") {
-        match database::create_database("db_file") {
-            Ok(con) => database::create_tables(&con).unwrap(),
-            Err(e) => panic!("Error {}", e),
-        }
-    }
+    let e = Entry {
+        id: "1".to_string(),
+        title: "title".to_string(),
+        username: Some("username".to_string()),
+        password: None,
+        url: None,
+        note: None,
+    };
+
+    let file = "db.txt".to_string();
+
+    let store = BinaryFileEntryStore::new(file);
+
+    let _ = store.save(&e.id, &e);
 }

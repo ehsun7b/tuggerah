@@ -1,54 +1,16 @@
-use std::{
-    fmt::{self},
-    fs::{remove_file, rename, File, OpenOptions},
-    io::{self, Write},
-    path::Path,
-};
-
-use bincode::Error as BincodeError;
-use byteorder::{LittleEndian, WriteBytesExt};
-
 use super::{
     binary_record_iterator::BinaryRecordIterator,
+    binary_store_error::BinaryStoreError,
     data_store::{DataStore, Filter},
     model::Entry,
 };
+use byteorder::{LittleEndian, WriteBytesExt};
 use log::{debug, error, info};
-
-// ----- Binary store error
-
-#[derive(Debug)]
-pub enum BinaryStoreError {
-    IoError(io::Error),
-    SerializationError(BincodeError),
-}
-
-impl From<io::Error> for BinaryStoreError {
-    fn from(error: io::Error) -> Self {
-        BinaryStoreError::IoError(error)
-    }
-}
-
-impl From<BincodeError> for BinaryStoreError {
-    fn from(error: BincodeError) -> Self {
-        BinaryStoreError::SerializationError(error)
-    }
-}
-
-impl fmt::Display for BinaryStoreError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            BinaryStoreError::IoError(ref err) => {
-                write!(f, "I/O error: {}", err)
-            }
-            BinaryStoreError::SerializationError(ref err) => {
-                write!(f, "Serialization error: {}", err)
-            }
-        }
-    }
-}
-
-// ------------------------
+use std::{
+    fs::{remove_file, rename, File, OpenOptions},
+    io::Write,
+    path::Path,
+};
 
 pub struct BinaryFileEntryStore {
     file_path: String,
@@ -65,7 +27,7 @@ impl BinaryFileEntryStore {
             }
         }
 
-        BinaryFileEntryStore { file_path }
+        Self { file_path }
     }
 
     fn file_exists(file_path: &str) -> bool {
@@ -115,7 +77,7 @@ impl BinaryFileEntryStore {
 }
 
 impl DataStore<String, Entry, BinaryStoreError> for BinaryFileEntryStore {
-    fn save(&self, id: &String, value: &Entry) -> Result<(), BinaryStoreError> {
+    fn save(&mut self, id: &String, value: &Entry) -> Result<(), BinaryStoreError> {
         let to_delete: Vec<String> = vec![id.into()];
         let to_append = vec![value];
         let new_path_string = format!("{}-tmp", self.file_path);
@@ -141,7 +103,7 @@ impl DataStore<String, Entry, BinaryStoreError> for BinaryFileEntryStore {
         Ok(None)
     }
 
-    fn delete(&self, id: &String) -> Result<(), BinaryStoreError> {
+    fn delete(&mut self, id: &String) -> Result<(), BinaryStoreError> {
         let to_delete: Vec<String> = vec![id.into()];
         let to_append = vec![];
         let new_path_string = format!("{}-tmp", self.file_path);
@@ -199,7 +161,7 @@ mod tests {
     #[test]
     fn test_save_and_load() {
         let test_file_path = setup_test_file();
-        let store = BinaryFileEntryStore::new(test_file_path.clone());
+        let mut store = BinaryFileEntryStore::new(test_file_path.clone());
 
         let entry = Entry {
             id: "1".to_string(),
@@ -225,7 +187,7 @@ mod tests {
     #[test]
     fn test_delete() {
         let test_file_path = setup_test_file();
-        let store = BinaryFileEntryStore::new(test_file_path.clone());
+        let mut store = BinaryFileEntryStore::new(test_file_path.clone());
 
         let entry = Entry {
             id: "1".to_string(),
@@ -253,7 +215,7 @@ mod tests {
     #[test]
     fn test_search() {
         let test_file_path = setup_test_file();
-        let store = BinaryFileEntryStore::new(test_file_path.clone());
+        let mut store = BinaryFileEntryStore::new(test_file_path.clone());
 
         let entry1 = Entry {
             id: "1".to_string(),

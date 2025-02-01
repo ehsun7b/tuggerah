@@ -1,7 +1,7 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::{self, Read};
 
-use super::{binary_file_entry_store::BinaryStoreError, model::Entry};
+use super::{binary_store_error::BinaryStoreError, model::Entry};
 
 pub struct BinaryRecordIterator<R: Read> {
     reader: R,

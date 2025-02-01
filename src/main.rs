@@ -1,4 +1,5 @@
 mod data;
+mod secret;
 
 use data::{binary_file_entry_store::BinaryFileEntryStore, data_store::DataStore, model::Entry};
 fn main() {
@@ -15,5 +16,5 @@ fn main() {
 
     let store = BinaryFileEntryStore::new(file);
 
-    let _ = store.save(&e.id, &e);
+    //let _ = store.save(&e.id, &e);
 }

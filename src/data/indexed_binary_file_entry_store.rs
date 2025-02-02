@@ -6,7 +6,6 @@ use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    f64::consts::E,
     fs::{remove_file, rename, File, OpenOptions},
     io::{Read, Seek, SeekFrom, Write},
     path::Path,
@@ -885,6 +884,198 @@ mod tests {
 
         // Verify the results
         assert!(results.is_empty());
+
+        cleanup_temp_file(&data_file_path);
+        cleanup_temp_file(&index_file_path);
+    }
+
+    #[test]
+    fn test_needs_index_rewrite_after_save() {
+        let data_file_path = "test_needs_index_rewrite_after_save_data.bin";
+        let index_file_path = "test_needs_index_rewrite_after_save_index.bin";
+
+        create_temp_file(data_file_path).unwrap();
+        create_temp_file(index_file_path).unwrap();
+
+        let mut store = IndexedBinaryFileEntryStore::new(
+            data_file_path.to_string(),
+            index_file_path.to_string(),
+        );
+
+        let entry = Entry {
+            id: "test_id".to_string(),
+            title: "Test Title".to_string(),
+            username: Some("test_user".to_string()),
+            password: Some("test_password".to_string()),
+            url: Some("https://example.com".to_string()),
+            note: Some("This is a test entry".to_string()),
+        };
+
+        // Save the entry
+        store.save(&entry.id, &entry).unwrap();
+
+        // Verify that the index rewrite flag is set
+        assert!(store.needs_index_rewrite());
+
+        cleanup_temp_file(&data_file_path);
+        cleanup_temp_file(&index_file_path);
+    }
+
+    #[test]
+    fn test_needs_index_rewrite_cleared_after_rewrite() {
+        let data_file_path = "test_needs_index_rewrite_cleared_after_rewrite_data.bin";
+        let index_file_path = "test_needs_index_rewrite_cleared_after_rewrite_index.bin";
+
+        create_temp_file(data_file_path).unwrap();
+        create_temp_file(index_file_path).unwrap();
+
+        let mut store = IndexedBinaryFileEntryStore::new(
+            data_file_path.to_string(),
+            index_file_path.to_string(),
+        );
+
+        let entry = Entry {
+            id: "test_id".to_string(),
+            title: "Test Title".to_string(),
+            username: Some("test_user".to_string()),
+            password: Some("test_password".to_string()),
+            url: Some("https://example.com".to_string()),
+            note: Some("This is a test entry".to_string()),
+        };
+
+        // Save the entry (sets needs_index_rewrite to true)
+        store.save(&entry.id, &entry).unwrap();
+
+        // Rewrite the index (clears needs_index_rewrite)
+        store.rewrite_index().unwrap();
+
+        // Verify that the index rewrite flag is cleared
+        assert!(!store.needs_index_rewrite());
+
+        cleanup_temp_file(&data_file_path);
+        cleanup_temp_file(&index_file_path);
+    }
+
+    #[test]
+    fn test_needs_data_rewrite_after_delete() {
+        let data_file_path = "test_needs_data_rewrite_after_delete_data.bin";
+        let index_file_path = "test_needs_data_rewrite_after_delete_index.bin";
+
+        create_temp_file(data_file_path).unwrap();
+        create_temp_file(index_file_path).unwrap();
+
+        let mut store = IndexedBinaryFileEntryStore::new(
+            data_file_path.to_string(),
+            index_file_path.to_string(),
+        );
+
+        let entry = Entry {
+            id: "test_id".to_string(),
+            title: "Test Title".to_string(),
+            username: Some("test_user".to_string()),
+            password: Some("test_password".to_string()),
+            url: Some("https://example.com".to_string()),
+            note: Some("This is a test entry".to_string()),
+        };
+
+        // Save the entry
+        store.save(&entry.id, &entry).unwrap();
+
+        // Delete the entry
+        store.delete(&entry.id).unwrap();
+
+        // Verify that the data rewrite flag is set
+        assert!(store.needs_data_rewrite());
+
+        cleanup_temp_file(&data_file_path);
+        cleanup_temp_file(&index_file_path);
+    }
+
+    #[test]
+    fn test_needs_data_rewrite_cleared_after_rewrite() {
+        let data_file_path = "test_needs_data_rewrite_cleared_after_rewrite_data.bin";
+        let index_file_path = "test_needs_data_rewrite_cleared_after_rewrite_index.bin";
+
+        create_temp_file(data_file_path).unwrap();
+        create_temp_file(index_file_path).unwrap();
+
+        let mut store = IndexedBinaryFileEntryStore::new(
+            data_file_path.to_string(),
+            index_file_path.to_string(),
+        );
+
+        let entry = Entry {
+            id: "test_id".to_string(),
+            title: "Test Title".to_string(),
+            username: Some("test_user".to_string()),
+            password: Some("test_password".to_string()),
+            url: Some("https://example.com".to_string()),
+            note: Some("This is a test entry".to_string()),
+        };
+
+        // Save the entry
+        store.save(&entry.id, &entry).unwrap();
+
+        // Delete the entry (sets needs_data_rewrite to true)
+        store.delete(&entry.id).unwrap();
+
+        // Rewrite the data file (clears needs_data_rewrite)
+        store.write_data().unwrap();
+
+        // Verify that the data rewrite flag is cleared
+        assert!(!store.needs_data_rewrite());
+
+        cleanup_temp_file(&data_file_path);
+        cleanup_temp_file(&index_file_path);
+    }
+
+    #[test]
+    fn test_needs_index_rewrite_unchanged_without_modifications() {
+        let data_file_path = "test_needs_index_rewrite_unchanged_data.bin";
+        let index_file_path = "test_needs_index_rewrite_unchanged_index.bin";
+
+        create_temp_file(data_file_path).unwrap();
+        create_temp_file(index_file_path).unwrap();
+
+        let mut store = IndexedBinaryFileEntryStore::new(
+            data_file_path.to_string(),
+            index_file_path.to_string(),
+        );
+
+        // Verify that the index rewrite flag is initially false
+        assert!(!store.needs_index_rewrite());
+
+        cleanup_temp_file(&data_file_path);
+        cleanup_temp_file(&index_file_path);
+    }
+
+    #[test]
+    fn test_needs_data_rewrite_unchanged_without_deletions() {
+        let data_file_path = "test_needs_data_rewrite_unchanged_data.bin";
+        let index_file_path = "test_needs_data_rewrite_unchanged_index.bin";
+
+        create_temp_file(data_file_path).unwrap();
+        create_temp_file(index_file_path).unwrap();
+
+        let mut store = IndexedBinaryFileEntryStore::new(
+            data_file_path.to_string(),
+            index_file_path.to_string(),
+        );
+
+        let entry = Entry {
+            id: "test_id".to_string(),
+            title: "Test Title".to_string(),
+            username: Some("test_user".to_string()),
+            password: Some("test_password".to_string()),
+            url: Some("https://example.com".to_string()),
+            note: Some("This is a test entry".to_string()),
+        };
+
+        // Save the entry
+        store.save(&entry.id, &entry).unwrap();
+
+        // Verify that the data rewrite flag is still false (no deletions)
+        assert!(!store.needs_data_rewrite());
 
         cleanup_temp_file(&data_file_path);
         cleanup_temp_file(&index_file_path);
